@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualiseur Audio Moderne</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6c63ff;
+            --secondary-color: #ff6584;
+            --dark-bg: #121212;
+            --card-bg: rgba(30, 30, 30, 0.7);
+            --text-color: #ffffff;
+            --border-radius: 16px;
+            --transition-speed: 0.3s;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            overflow: hidden;
+            transition: background-color var(--transition-speed) ease;
+        }
+
+        /* Container principal */
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Canvas */
+        #audioCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Icône des paramètres */
+        #settings-icon {
+            position: fixed;
+            bottom: 32px;
+            left: 32px;
+            width: 56px;
+            height: 56px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            transition: transform var(--transition-speed) ease, background-color var(--transition-speed) ease;
+        }
+
+        #settings-icon:hover {
+            transform: scale(1.1);
+            background-color: var(--secondary-color);
+        }
+
+        #settings-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--text-color);
+        }
+
+        /* Menu latéral */
+        #menu {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 380px;
+            height: 100vh;
+            background-color: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 90;
+            transition: left var(--transition-speed) cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 40px 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #menu.open {
+            left: 0;
+        }
+
+        #menu h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+
+        /* Bouton de fermeture du menu */
+        #close-menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background-color var(--transition-speed) ease;
+            font-size: 18px;
+        }
+
+        #close-menu:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Groupes de contrôles */
+        .control-group {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .control-group-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .control-group-title svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--primary-color);
+        }
+
+        /* Étiquettes */
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Entrées et contrôles */
+        .control-group input[type="file"],
+        .control-group input[type="range"],
+        .control-group input[type="color"],
+        .control-group input[type="number"],
+        .control-group select,
+        .control-group input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            transition: border-color var(--transition-speed) ease, background-color var(--transition-speed) ease;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus,
+        .control-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Style spécifique pour le sélecteur de couleur */
+        .control-group input[type="color"] {
+            height: 40px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        /* Style pour les curseurs */
+        .control-group input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0;
+            margin: 10px 0 20px 0;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: background var(--transition-speed) ease, transform var(--transition-speed) ease;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--secondary-color);
+            transform: scale(1.2);
+        }
+
+        /* Checkbox stylisée */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .checkbox-wrapper label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+
+        .checkbox-custom {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + label .checkbox-custom {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .checkbox-custom:after {
+            content: "";
+            display: block;
+            width: 6px;
+            height: 12px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) scale(0);
+            transition: transform var(--transition-speed) ease;
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + label .checkbox-custom:after {
+            transform: rotate(45deg) scale(1);
+        }
+
+        /* Boutons */
+        .button {
+            width: 100%;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: var(--border-radius);
+            font-family: 'Poppins', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .button svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--text-color);
+        }
+
+        /* Button variants */
+        .button-secondary {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .button-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Overlay pour obscurcir l'arrière-plan quand le menu est ouvert */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            z-index: 80;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed) ease;
+        }
+
+        #overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Animation pour les contrôles audio */
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            #menu {
+                width: 100%;
+                left: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="audioCanvas"></canvas>
+    </div>
+    
+    <div id="overlay"></div>
+    
+    <div id="settings-icon">
+        <svg viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </div>
+
+    <div id="menu">
+        <h2>Paramètres</h2>
+        <div id="close-menu">✖</div>
+        
+        <div class="control-group">
+            <div class="control-group-title">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+                Audio
+            </div>
+            <label for="audioInput">Choisir un fichier audio</label>
+            <input type="file" id="audioInput" accept="audio/*">
+            
+            <div class="audio-controls">
+                <button class="button" id="playPause">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Lecture
+                </button>
+                <button class="button button-secondary" id="resetAudio">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                    Recommencer
+                </button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-group-title">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+                </svg>
+                Visualisation
+            </div>
+            <label for="sensitivity">Sensibilité</label>
+            <input type="range" id="sensitivity" min="0" max="2" step="0.1" value="1">
+            
+            <label for="spectrumShape">Forme du Spectre</label>
+            <select id="spectrumShape">
+                <option value="circle">Cercle</option>
+                <option value="line">Ligne</option>
+                <option value="star">Étoile</option>
+                <option value="spiral">Spirale</option>
+                <option value="wave">Vague</option>
+                <option value="bars">Barres</option>
+            </select>
+            
+            <label for="spectrumScale">Taille du Spectre</label>
+            <input type="range" id="spectrumScale" min="0.1" max="2" step="0.05" value="0.3">
+        </div>
+
+        <div class="control-group">
+            <div class="control-group-title">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                </svg>
+                Couleurs
+            </div>
+            <label for="barColor">Couleur des barres</label>
+            <input type="color" id="barColor" value="#6c63ff">
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="barRainbow" name="barRainbow">
+                <label for="barRainbow">
+                    <div class="checkbox-custom"></div>
+                    Barres Arc-en-ciel
+                </label>
+            </div>
+            
+            <label for="backgroundColor">Couleur de fond</label>
+            <input type="color" id="backgroundColor" value="#121212">
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="backgroundRainbow" name="backgroundRainbow">
+                <label for="backgroundRainbow">
+                    <div class="checkbox-custom"></div>
+                    Fond Arc-en-ciel
+                </label>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-group-title">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.86 8.86l-3 3.87L9 13.14 6 17h12l-3.86-5.14z"/>
+                </svg>
+                Personnalisation
+            </div>
+            <label for="backgroundImage">Image de fond</label>
+            <input type="file" id="backgroundImage" accept="image/*">
+            
+            <label for="spectrumText">Texte au centre</label>
+            <input type="text" id="spectrumText" placeholder="Entrez votre texte">
+            
+            <label for="spectrumTextColor">Couleur du texte</label>
+            <input type="color" id="spectrumTextColor" value="#ffffff">
+            
+            <label for="spectrumTextSize">Taille du texte</label>
+            <input type="number" id="spectrumTextSize" min="10" max="100" value="40">
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="spectrumTextRainbow" name="spectrumTextRainbow">
+                <label for="spectrumTextRainbow">
+                    <div class="checkbox-custom"></div>
+                    Texte Arc-en-ciel
+                </label>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-group-title">
+                <svg viewBox="0 0 24 24">
+                    <path d="M16 1H8C6.34 1 5 2.34 5 4v16c0 1.66 1.34 3 3 3h8c1.66 0 3-1.34 3-3V4c0-1.66-1.34-3-3-3zm-2 20h-4v-1h4v1zm3.25-3H6.75V4h10.5v14z"/>
+                </svg>
+                Actions
+            </div>
+            <button class="button" id="saveVideo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+                Enregistrer Vidéo MP4
+            </button>
+            <button class="button" id="saveImage">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
+                </svg>
+                Enregistrer Image
+            </button>
+            <button class="button button-secondary" id="fullscreen">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                </svg>
+                Plein écran
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const canvas = document.getElementById('audioCanvas');
+        const ctx = canvas.getContext('2d');
+        let audioSource, analyser;
+        let isPlaying = false;
+        let sensitivity = 1;
+        let barColor = '#ff0000';
+        let spectrumShape = 'circle';
+        let barRainbow = false;
+        let backgroundColor = '#1a1a1a';
+        let backgroundRainbow = false;
+        let spectrumScale = 0.3;
+        let backgroundImage = null;
+        let particles = [];
+        const particleCount = 100;
+        const maxParticleSize = 5;
+        const maxParticleSpeed = 2;
+        let spectrumText = '';
+        let spectrumTextColor = '#ffffff';
+        let spectrumTextSize = 40;
+        let spectrumTextRainbow = false;
+        let colorShift = 0;
+        let defaultAudioLoaded = false;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Load default audio
+        function loadDefaultAudio() {
+            const audioUrl = 'path_to_default_audio.mp3'; // Update with a valid default audio path
+            fetch(audioUrl)
+                .then(response => response.arrayBuffer())
+                .then(data => audioContext.decodeAudioData(data))
+                .then(buffer => {
+                    if (audioSource) audioSource.disconnect();
+                    audioSource = audioContext.createBufferSource();
+                    audioSource.buffer = buffer;
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    audioSource.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    audioSource.start(0);
+                    isPlaying = true;
+                    defaultAudioLoaded = true;
+                    draw();
+                })
+                .catch(error => console.error('Error loading default audio:', error));
+        }
+
+        document.getElementById('audioInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                audioContext.decodeAudioData(e.target.result, function(buffer) {
+                    if (audioSource) audioSource.disconnect();
+                    audioSource = audioContext.createBufferSource();
+                    audioSource.buffer = buffer;
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    audioSource.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    audioSource.start(0);
+                    isPlaying = true;
+                    defaultAudioLoaded = true;
+                    draw();
+                    
+                    // Mettre à jour le texte du bouton lecture/pause
+                    const playPauseButton = document.getElementById('playPause');
+                    playPauseButton.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                        Pause
+                    `;
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('playPause').addEventListener('click', function() {
+            const playPauseButton = document.getElementById('playPause');
+            const playPauseIcon = playPauseButton.querySelector('svg');
+            
+            if (!defaultAudioLoaded) {
+                loadDefaultAudio();
+                playPauseButton.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                    Pause
+                `;
+            } else if (isPlaying) {
+                audioContext.suspend();
+                isPlaying = false;
+                playPauseButton.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Lecture
+                `;
+            } else {
+                audioContext.resume();
+                isPlaying = true;
+                playPauseButton.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                    Pause
+                `;
+                draw();
+            }
+        });
+
+        document.getElementById('resetAudio').addEventListener('click', function() {
+            if (audioSource && defaultAudioLoaded) {
+                // Arrêter la source audio actuelle
+                audioSource.stop();
+                
+                // Créer une nouvelle source audio avec le même buffer
+                const currentBuffer = audioSource.buffer;
+                audioSource = audioContext.createBufferSource();
+                audioSource.buffer = currentBuffer;
+                
+                // Reconnecter à l'analyseur
+                audioSource.connect(analyser);
+                
+                // Démarrer la nouvelle source audio
+                audioSource.start(0);
+                
+                // Mettre en pause immédiatement
+                audioContext.suspend();
+                isPlaying = false;
+            }
+        });
+
+        document.getElementById('sensitivity').addEventListener('input', function(e) {
+            sensitivity = parseFloat(e.target.value);
+        });
+
+        document.getElementById('spectrumShape').addEventListener('change', function(e) {
+            spectrumShape = e.target.value;
+        });
+
+        document.getElementById('barColor').addEventListener('input', function(e) {
+            barColor = e.target.value;
+            barRainbow = false; // Reset rainbow effect if color is manually chosen
+            document.getElementById('barRainbow').checked = false;
+        });
+
+        document.getElementById('barRainbow').addEventListener('change', function(e) {
+            barRainbow = e.target.checked;
+            if (!barRainbow) {
+                document.getElementById('barColor').value = '#ff0000'; // Reset to default color
+            }
+        });
+
+        document.getElementById('backgroundColor').addEventListener('input', function(e) {
+            backgroundColor = e.target.value;
+            backgroundRainbow = false; // Reset rainbow effect if color is manually chosen
+            document.getElementById('backgroundRainbow').checked = false;
+            document.body.style.backgroundColor = backgroundColor;
+        });
+
+        document.getElementById('backgroundRainbow').addEventListener('change', function(e) {
+            backgroundRainbow = e.target.checked;
+            if (!backgroundRainbow) {
+                document.getElementById('backgroundColor').value = '#1a1a1a'; // Reset to default color
+                document.body.style.backgroundColor = backgroundColor;
+            }
+        });
+
+        document.getElementById('spectrumScale').addEventListener('input', function(e) {
+            spectrumScale = parseFloat(e.target.value);
+        });
+
+        document.getElementById('backgroundImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    backgroundImage = img;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('spectrumText').addEventListener('input', function(e) {
+            spectrumText = e.target.value;
+        });
+
+        document.getElementById('spectrumTextColor').addEventListener('input', function(e) {
+            spectrumTextColor = e.target.value;
+            spectrumTextRainbow = false; // Reset rainbow effect if color is manually chosen
+            document.getElementById('spectrumTextRainbow').checked = false;
+        });
+
+        document.getElementById('spectrumTextSize').addEventListener('input', function(e) {
+            spectrumTextSize = parseInt(e.target.value);
+        });
+
+        document.getElementById('spectrumTextRainbow').addEventListener('change', function(e) {
+            spectrumTextRainbow = e.target.checked;
+            if (!spectrumTextRainbow) {
+                document.getElementById('spectrumTextColor').value = '#ffffff'; // Reset to default color
+            }
+        });
+
+        document.getElementById('saveImage').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'spectrum.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        function createParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * maxParticleSize,
+                    speed: Math.random() * maxParticleSpeed,
+                    direction: Math.random() * Math.PI * 2,
+                    opacity: Math.random()
+                });
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach((particle) => {
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255, 255, 255, ${particle.opacity})`;
+                ctx.fill();
+
+                particle.x += Math.cos(particle.direction) * particle.speed;
+                particle.y += Math.sin(particle.direction) * particle.speed;
+
+                // Reset particles that move off-screen
+                if (particle.x < 0 || particle.x > canvas.width || particle.y < 0 || particle.y > canvas.height) {
+                    particle.x = Math.random() * canvas.width;
+                    particle.y = Math.random() * canvas.height;
+                    particle.size = Math.random() * maxParticleSize;
+                    particle.speed = Math.random() * maxParticleSpeed;
+                    particle.direction = Math.random() * Math.PI * 2;
+                    particle.opacity = Math.random();
+                }
+            });
+        }
+
+        function drawSpectrumCircle(centerX, centerY, radius, bufferLength, dataArray) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            for (let i = 0; i < bufferLength; i++) {
+                const rads = Math.PI * 2 / bufferLength;
+                const barHeight = dataArray[i] * sensitivity;
+                const x = centerX + Math.cos(rads * i) * radius;
+                const y = centerY + Math.sin(rads * i) * radius;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(centerX + Math.cos(rads * i) * (radius + barHeight), centerY + Math.sin(rads * i) * (radius + barHeight));
+
+                if (barRainbow) {
+                    const hue = (i / bufferLength * 360 + colorShift * 100) % 360;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.strokeStyle = barColor;
+                }
+
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function drawSpectrumLine(centerX, centerY, bufferLength, dataArray) {
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+
+            for (let i = 0; i < bufferLength; i++) {
+                const x = (i / bufferLength) * canvas.width;
+                const y = centerY - dataArray[i] * sensitivity;
+                ctx.lineTo(x, y);
+
+                if (barRainbow) {
+                    const hue = (i / bufferLength * 360 + colorShift * 100) % 360;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.strokeStyle = barColor;
+                }
+            }
+
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawSpectrumStar(centerX, centerY, radius, bufferLength, dataArray) {
+            ctx.beginPath();
+
+            for (let i = 0; i < bufferLength; i++) {
+                const rads = Math.PI * 2 / bufferLength;
+                const barHeight = dataArray[i] * sensitivity;
+                const x = centerX + Math.cos(rads * i) * radius;
+                const y = centerY + Math.sin(rads * i) * radius;
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x + Math.cos(rads * i) * barHeight, y + Math.sin(rads * i) * barHeight);
+
+                if (barRainbow) {
+                    const hue = (i / bufferLength * 360 + colorShift * 100) % 360;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.strokeStyle = barColor;
+                }
+            }
+
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawSpectrumSpiral(centerX, centerY, bufferLength, dataArray) {
+            ctx.beginPath();
+
+            for (let i = 0; i < bufferLength; i++) {
+                const rads = Math.PI * 2 / bufferLength;
+                const barHeight = dataArray[i] * sensitivity;
+                const x = centerX + Math.cos(rads * i) * (i * 2);
+                const y = centerY + Math.sin(rads * i) * (i * 2);
+                ctx.lineTo(x, y);
+
+                if (barRainbow) {
+                    const hue = (i / bufferLength * 360 + colorShift * 100) % 360;
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.strokeStyle = barColor;
+                }
+            }
+
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function draw() {
+            if (!isPlaying) return;
+
+            colorShift += 0.01;
+
+            // Handle background color
+            if (backgroundRainbow) {
+                const hue = (colorShift * 100) % 360;
+                backgroundColor = `hsl(${hue}, 100%, 10%)`;
+                document.body.style.backgroundColor = backgroundColor;
+            }
+
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (backgroundImage) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            }
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            drawParticles(); // Draw particles before the spectrum
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const bass = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10; // Simple bass detection
+            const radius = (Math.min(centerX, centerY) * spectrumScale) + bass / 4;
+
+            switch (spectrumShape) {
+                case 'circle':
+                    drawSpectrumCircle(centerX, centerY, radius, bufferLength, dataArray);
+                    break;
+                case 'line':
+                    drawSpectrumLine(centerX, centerY, bufferLength, dataArray);
+                    break;
+                case 'star':
+                    drawSpectrumStar(centerX, centerY, radius, bufferLength, dataArray);
+                    break;
+                case 'spiral':
+                    drawSpectrumSpiral(centerX, centerY, bufferLength, dataArray);
+                    break;
+            }
+
+            if (spectrumText) {
+                ctx.font = `${spectrumTextSize}px Arial`;
+                if (spectrumTextRainbow) {
+                    const hue = (colorShift * 100) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                } else {
+                    ctx.fillStyle = spectrumTextColor;
+                }
+                ctx.textAlign = 'center';
+                ctx.fillText(spectrumText, centerX, centerY);
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        createParticles(); // Create initial particles
+
+        // Menu animation
+        const settingsIcon = document.getElementById('settings-icon');
+        const menu = document.getElementById('menu');
+        const closeMenu = document.getElementById('close-menu');
+
+        settingsIcon.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click from triggering the canvas-container click event
+            menu.classList.add('open');
+            document.getElementById('overlay').classList.add('active');
+        });
+
+        closeMenu.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click from triggering the canvas-container click event
+            menu.classList.remove('open');
+            document.getElementById('overlay').classList.remove('active');
+        });
+
+        // Fullscreen functionality
+        const fullscreenButton = document.getElementById('fullscreen');
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Fonctionnalité pour enregistrer la vidéo MP4
+        document.getElementById('saveVideo').addEventListener('click', function() {
+            // Si l'audio n'est pas déjà en lecture, le démarrer
+            if (!isPlaying) {
+                document.getElementById('playPause').click();
+            }
+            
+            // Créer un canvas pour la capture vidéo
+            const captureCanvas = document.createElement('canvas');
+            captureCanvas.width = canvas.width;
+            captureCanvas.height = canvas.height;
+            const captureCtx = captureCanvas.getContext('2d');
+            
+            // Créer un flux de média à partir du canvas
+            const canvasStream = captureCanvas.captureStream(30); // 30 FPS
+            
+            // Créer un flux audio destiné à la capture
+            const audioDestination = audioContext.createMediaStreamDestination();
+            analyser.connect(audioDestination); // Connecter l'analyseur à la destination
+            
+            // Combiner les flux audio et vidéo
+            const combinedStream = new MediaStream();
+            canvasStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+            audioDestination.stream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+            
+            // Configurer le MediaRecorder
+            let mediaRecorder;
+            try {
+                mediaRecorder = new MediaRecorder(combinedStream, {
+                    mimeType: 'video/webm;codecs=vp9,opus',
+                    videoBitsPerSecond: 5000000 // 5 Mbps
+                });
+            } catch (e) {
+                try {
+                    // Essayer avec un autre codec si vp9 n'est pas supporté
+                    mediaRecorder = new MediaRecorder(combinedStream, {
+                        mimeType: 'video/webm;codecs=vp8,opus',
+                        videoBitsPerSecond: 5000000
+                    });
+                } catch (e) {
+                    // Fallback au format par défaut
+                    mediaRecorder = new MediaRecorder(combinedStream);
+                }
+            }
+            
+            // Tableau pour stocker les segments enregistrés
+            const recordedChunks = [];
+            
+            // Récupérer les données quand elles sont disponibles
+            mediaRecorder.addEventListener('dataavailable', function(e) {
+                if (e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            });
+            
+            // Quand l'enregistrement est terminé, créer et télécharger le fichier
+            mediaRecorder.addEventListener('stop', function() {
+                // Créer un blob à partir des chunks enregistrés
+                const blob = new Blob(recordedChunks, {
+                    type: 'video/mp4'
+                });
+                
+                // Créer un lien pour télécharger le fichier
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'visualisation-audio.mp4';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Nettoyer
+                setTimeout(function() {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+            });
+            
+            // Fonction pour capturer l'image du canvas principal vers le canvas de capture
+            function captureFrame() {
+                captureCtx.drawImage(canvas, 0, 0, captureCanvas.width, captureCanvas.height);
+                if (mediaRecorder.state === 'recording') {
+                    requestAnimationFrame(captureFrame);
+                }
+            }
+            
+            // Montrer un indicateur d'enregistrement
+            const recIndicator = document.createElement('div');
+            recIndicator.style.position = 'fixed';
+            recIndicator.style.top = '20px';
+            recIndicator.style.right = '20px';
+            recIndicator.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            recIndicator.style.color = 'white';
+            recIndicator.style.padding = '10px 20px';
+            recIndicator.style.borderRadius = '5px';
+            recIndicator.style.fontFamily = 'Poppins, sans-serif';
+            recIndicator.style.zIndex = '1000';
+            recIndicator.style.display = 'flex';
+            recIndicator.style.alignItems = 'center';
+            recIndicator.style.gap = '10px';
+            recIndicator.innerHTML = `
+                <span style="display: inline-block; width: 15px; height: 15px; background-color: red; border-radius: 50%;"></span>
+                <span>Enregistrement en cours... Cliquez pour arrêter</span>
+            `;
+            recIndicator.style.cursor = 'pointer';
+            document.body.appendChild(recIndicator);
+            
+            // Démarrer l'enregistrement
+            mediaRecorder.start();
+            captureFrame(); // Commencer à capturer les images
+            
+            // Arrêter l'enregistrement après un clic sur l'indicateur
+            recIndicator.addEventListener('click', function() {
+                mediaRecorder.stop();
+                document.body.removeChild(recIndicator);
+            });
+            
+            // Limiter l'enregistrement à 2 minutes maximum
+            setTimeout(function() {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    if (document.body.contains(recIndicator)) {
+                        document.body.removeChild(recIndicator);
+                    }
+                }
+            }, 120000); // 2 minutes en millisecondes
+        });
+    </script>
+</body>
+</html>
