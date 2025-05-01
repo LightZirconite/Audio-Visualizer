@@ -2,7 +2,7 @@
 
 An elegant and customizable audio visualizer based on the Web Audio API and Canvas.
 
-![Spectra Audio Visualizer](screenshot.png)
+![Spectra Audio Visualizer](picture.png)
 
 ## 🎵 Features
 
